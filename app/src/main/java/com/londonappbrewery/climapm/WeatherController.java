@@ -3,6 +3,7 @@ package com.londonappbrewery.climapm;
 import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -12,6 +13,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -63,6 +65,13 @@ final int REQUEST_CODE = 123;
 
 
         // TODO: Add an OnClickListener to the changeCityButton here:
+        changeCityButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent myIntent = new Intent(WeatherController.this,ChangeCity.class);
+                startActivity(myIntent);
+            }
+        });
 
     }
 
@@ -71,6 +80,15 @@ final int REQUEST_CODE = 123;
     @Override
     protected void onResume() {
         super.onResume();
+        Intent myIntent=getIntent();
+        String city=myIntent.getStringExtra("City");
+        if(city!=null)
+        {
+            getWeatherForNewCity(city);
+        }
+        else{
+
+        }
         Log.d("Clime", "onResume() called");
         Log.d("Clime", "getting weather for current location...");
         getWeatherForCurrentLocation();
@@ -78,7 +96,12 @@ final int REQUEST_CODE = 123;
 
 
     // TODO: Add getWeatherForNewCity(String city) here:
-
+    public void getWeatherForNewCity(String city){
+        RequestParams param=new RequestParams();
+        param.put("q",city);
+        param.put("appid",APP_ID);
+        letsDoSomeNetworking(param);
+    }
 
     // TODO: Add getWeatherForCurrentLocation() here:
     private void getWeatherForCurrentLocation() {
@@ -155,6 +178,11 @@ final int REQUEST_CODE = 123;
             @Override
             public void onSuccess(int statuscode, Header[] headers, JSONObject response){
             Log.d("Clima","data success"+response);
+
+            WeatherDataModel weatherDataModel=WeatherDataModel.fromJson(response);
+            Log.d("Clima","weather data object -> "+weatherDataModel);
+            if(weatherDataModel!=null)
+                updateUI(weatherDataModel);
             }
             @Override
             public void onFailure(int statuscode,Header[] header,Throwable e,JSONObject response){
@@ -165,11 +193,22 @@ final int REQUEST_CODE = 123;
     }
 
     // TODO: Add updateUI() here:
+    private void updateUI(WeatherDataModel weatherDataModel){
+        mTemperatureLabel.setText(weatherDataModel.getTemprature());
+        mCityLabel.setText(weatherDataModel.getCity());
+        int resourceId= getResources().getIdentifier(weatherDataModel.getIconName(),"drawable",getPackageName());
+        mWeatherImage.setImageResource(resourceId);
 
+    }
 
 
     // TODO: Add onPause() here:
 
 
-
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(mLocationManager!=null)
+            mLocationManager.removeUpdates(mLocationListener);
+    }
 }
